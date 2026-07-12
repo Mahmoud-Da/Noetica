@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import {
   ArrowRight,
@@ -22,7 +22,7 @@ type JobState = {
   download_url?: string;
 };
 
-const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8000";
+const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:8010";
 const WS_URL = API_URL.replace(/^http/, "ws");
 
 const LANGUAGES = [
@@ -36,6 +36,10 @@ const LANGUAGES = [
   "Spanish"
 ];
 
+function isRunning(status?: JobStatus) {
+  return status === "queued" || status === "processing";
+}
+
 function App() {
   const [file, setFile] = useState<File | null>(null);
   const [sourceLanguage, setSourceLanguage] = useState("auto");
@@ -45,7 +49,25 @@ function App() {
   const [error, setError] = useState("");
   const inputRef = useRef<HTMLInputElement | null>(null);
 
-  const canSubmit = useMemo(() => Boolean(file) && !job, [file, job]);
+  const jobRunning = isRunning(job?.status);
+  const canSubmit = useMemo(() => Boolean(file) && !jobRunning, [file, jobRunning]);
+
+  const refreshJob = useCallback(async (jobId: string) => {
+    const response = await fetch(`${API_URL}/api/jobs/${jobId}`);
+    if (!response.ok) return;
+    const next = (await response.json()) as JobState;
+    setJob(next);
+  }, []);
+
+  useEffect(() => {
+    if (!job?.job_id || !isRunning(job.status)) return;
+
+    const timer = window.setInterval(() => {
+      void refreshJob(job.job_id);
+    }, 2000);
+
+    return () => window.clearInterval(timer);
+  }, [job?.job_id, job?.status, refreshJob]);
 
   const pickFile = useCallback((incoming: File | null) => {
     setError("");
@@ -90,6 +112,9 @@ function App() {
       };
       socket.onerror = () => {
         setError("Live progress disconnected. The job may still be running.");
+      };
+      socket.onclose = () => {
+        void refreshJob(created.job_id);
       };
     } catch (err) {
       setError(err instanceof Error ? err.message : "Upload failed.");
@@ -185,8 +210,8 @@ function App() {
                 disabled={!canSubmit}
                 onClick={submit}
               >
-                {job ? <Loader2 className="animate-spin" size={18} /> : <ArrowRight size={18} />}
-                Translate
+                {jobRunning ? <Loader2 className="animate-spin" size={18} /> : <ArrowRight size={18} />}
+                {jobRunning ? "Translating" : "Translate"}
               </button>
             </div>
 

@@ -1,4 +1,5 @@
 from collections.abc import Callable
+from html import escape
 from pathlib import Path
 
 import fitz
@@ -6,6 +7,22 @@ import fitz
 from .groq_client import Translator
 
 Progress = Callable[[float, str], None]
+
+FONT_ARCHIVE = fitz.Archive("/usr/share/fonts")
+
+
+def _has_rtl(text: str) -> bool:
+    return any(
+        "\u0590" <= char <= "\u08ff"
+        or "\ufb50" <= char <= "\ufdff"
+        or "\ufe70" <= char <= "\ufeff"
+        for char in text
+    )
+
+
+def _rgb_css(color: tuple[float, float, float]) -> str:
+    red, green, blue = (round(channel * 255) for channel in color)
+    return f"rgb({red}, {green}, {blue})"
 
 
 def _span_text(line: dict) -> str:
@@ -26,21 +43,49 @@ def _line_style(line: dict) -> tuple[float, tuple[float, float, float]]:
 
 def _fit_text(page: fitz.Page, rect: fitz.Rect, text: str, font_size: float, color: tuple[float, float, float]) -> None:
     size = min(font_size, rect.height * 0.82)
+    direction = "rtl" if _has_rtl(text) else "ltr"
+    align = "right" if direction == "rtl" else "left"
+    html = f"<div dir=\"{direction}\">{escape(text)}</div>"
+
     while size >= 4:
-        shape = page.new_shape()
-        overflow = shape.insert_textbox(
+        spare_height, scale = page.insert_htmlbox(
             rect,
-            text,
-            fontsize=size,
-            fontname="helv",
-            color=color,
-            align=fitz.TEXT_ALIGN_LEFT,
+            html,
+            css=(
+                "div {"
+                "font-family: Noto Sans, Noto Sans Arabic, Noto Sans CJK JP, sans-serif;"
+                f"font-size: {size}px;"
+                f"color: {_rgb_css(color)};"
+                f"direction: {direction};"
+                f"text-align: {align};"
+                "line-height: 1.05;"
+                "white-space: pre-wrap;"
+                "}"
+            ),
+            scale_low=0.75,
+            archive=FONT_ARCHIVE,
         )
-        if overflow >= 0:
-            shape.commit()
+        if spare_height >= 0 or scale > 0:
             return
         size -= 0.5
-    page.insert_textbox(rect, text, fontsize=4, fontname="helv", color=color, align=fitz.TEXT_ALIGN_LEFT)
+
+    page.insert_htmlbox(
+        rect,
+        html,
+        css=(
+            "div {"
+            "font-family: Noto Sans, Noto Sans Arabic, Noto Sans CJK JP, sans-serif;"
+            f"font-size: 4px;"
+            f"color: {_rgb_css(color)};"
+            f"direction: {direction};"
+            f"text-align: {align};"
+            "line-height: 1.05;"
+            "white-space: pre-wrap;"
+            "}"
+        ),
+        scale_low=0,
+        archive=FONT_ARCHIVE,
+    )
 
 
 def translate_pdf(

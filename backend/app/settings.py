@@ -8,6 +8,7 @@ class Settings(BaseSettings):
 
     groq_api_key: str = ""
     groq_model: str = "llama-3.3-70b-versatile"
+    groq_min_interval_seconds: float = 0.45
     redis_url: str = "redis://localhost:6379/0"
     storage_dir: Path = Path("storage")
     public_api_url: str = "http://localhost:8000"
