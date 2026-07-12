@@ -1,0 +1,19 @@
+[[source]]
+url = "https://pypi.org/simple"
+verify_ssl = true
+name = "pypi"
+
+[packages]
+celery = "==5.4.0"
+fastapi = "==0.115.6"
+groq = "==0.13.1"
+pymupdf = "==1.24.14"
+pydantic-settings = "==2.7.0"
+python-multipart = "==0.0.19"
+redis = "==5.2.1"
+uvicorn = {extras = ["standard"], version = "==0.32.1"}
+
+[dev-packages]
+
+[requires]
+python_version = "3.11"
