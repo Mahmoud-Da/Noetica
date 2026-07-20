@@ -26,12 +26,21 @@ def set_job(job_id: str, **updates: Any) -> dict[str, Any]:
     return current
 
 
-def create_job(job_id: str, filename: str, source_language: str, target_language: str) -> dict[str, Any]:
+def create_job(
+    job_id: str,
+    filename: str,
+    source_language: str,
+    target_language: str,
+    page_from: int,
+    page_to: int,
+) -> dict[str, Any]:
     state = {
         "job_id": job_id,
         "filename": filename,
         "source_language": source_language,
         "target_language": target_language,
+        "page_from": page_from,
+        "page_to": page_to,
         "status": "queued",
         "progress": 0,
         "message": "Queued for translation.",

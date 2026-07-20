@@ -44,6 +44,8 @@ function App() {
   const [file, setFile] = useState<File | null>(null);
   const [sourceLanguage, setSourceLanguage] = useState("auto");
   const [targetLanguage, setTargetLanguage] = useState("Arabic");
+  const [pageFrom, setPageFrom] = useState("1");
+  const [pageTo, setPageTo] = useState("");
   const [job, setJob] = useState<JobState | null>(null);
   const [dragging, setDragging] = useState(false);
   const [error, setError] = useState("");
@@ -88,6 +90,8 @@ function App() {
     body.append("file", file);
     body.append("source_language", sourceLanguage);
     body.append("target_language", targetLanguage);
+    body.append("page_from", pageFrom || "1");
+    if (pageTo) body.append("page_to", pageTo);
 
     try {
       const response = await fetch(`${API_URL}/api/jobs`, {
@@ -224,7 +228,7 @@ function App() {
               <div className="mt-5 grid gap-4">
                 <label className="grid gap-2 text-sm font-medium">
                   Source
-                  <select className="h-11 rounded-md border border-line bg-white px-3 text-sm" value={sourceLanguage} onChange={(event) => setSourceLanguage(event.target.value)}>
+                  <select className="h-11 w-full min-w-0 rounded-md border border-line bg-white px-3 text-sm" value={sourceLanguage} onChange={(event) => setSourceLanguage(event.target.value)}>
                     <option value="auto">Auto detect</option>
                     {LANGUAGES.map((language) => (
                       <option key={language} value={language}>{language}</option>
@@ -233,12 +237,40 @@ function App() {
                 </label>
                 <label className="grid gap-2 text-sm font-medium">
                   Target
-                  <select className="h-11 rounded-md border border-line bg-white px-3 text-sm" value={targetLanguage} onChange={(event) => setTargetLanguage(event.target.value)}>
+                  <select className="h-11 w-full min-w-0 rounded-md border border-line bg-white px-3 text-sm" value={targetLanguage} onChange={(event) => setTargetLanguage(event.target.value)}>
                     {LANGUAGES.map((language) => (
                       <option key={language} value={language}>{language}</option>
                     ))}
                   </select>
                 </label>
+                <div className="grid gap-2">
+                  <span className="text-sm font-medium">Pages to translate</span>
+                  <div className="grid min-w-0 grid-cols-2 gap-3">
+                    <label className="grid min-w-0 gap-2 text-xs font-medium text-neutral-600">
+                      From page
+                      <input
+                        className="h-11 w-full min-w-0 rounded-md border border-line bg-white px-3 text-sm text-ink"
+                        type="number"
+                        min="1"
+                        inputMode="numeric"
+                        value={pageFrom}
+                        onChange={(event) => setPageFrom(event.target.value)}
+                      />
+                    </label>
+                    <label className="grid min-w-0 gap-2 text-xs font-medium text-neutral-600">
+                      To page
+                      <input
+                        className="h-11 w-full min-w-0 rounded-md border border-line bg-white px-3 text-sm text-ink"
+                        type="number"
+                        min="1"
+                        inputMode="numeric"
+                        placeholder="Last page"
+                        value={pageTo}
+                        onChange={(event) => setPageTo(event.target.value)}
+                      />
+                    </label>
+                  </div>
+                </div>
               </div>
             </div>
 

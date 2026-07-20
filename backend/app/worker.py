@@ -15,6 +15,8 @@ def translate_pdf_task(
     input_path: str,
     source_language: str,
     target_language: str,
+    page_from: int,
+    page_to: int,
 ) -> None:
     output_path = settings.results_dir / f"{job_id}.pdf"
 
@@ -23,7 +25,9 @@ def translate_pdf_task(
 
     try:
         set_job(job_id, status="processing", progress=1, message="Starting translation.")
-        translate_pdf(Path(input_path), output_path, source_language, target_language, progress)
+        translate_pdf(
+            Path(input_path), output_path, source_language, target_language, page_from, page_to, progress
+        )
         set_job(
             job_id,
             status="complete",
