@@ -4,6 +4,7 @@ import shutil
 import uuid
 from pathlib import Path
 
+import fitz
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
@@ -44,6 +45,8 @@ async def create_translation_job(
     file: UploadFile = File(...),
     source_language: str = Form("auto"),
     target_language: str = Form(...),
+    page_from: int = Form(1),
+    page_to: int | None = Form(None),
 ) -> dict:
     if file.content_type != "application/pdf":
         raise HTTPException(status_code=400, detail="Only PDF uploads are supported.")
@@ -55,8 +58,23 @@ async def create_translation_job(
     with input_path.open("wb") as destination:
         shutil.copyfileobj(file.file, destination)
 
-    state = create_job(job_id, safe_name, source_language, target_language)
-    translate_pdf_task.delay(job_id, str(input_path), source_language, target_language)
+    try:
+        with fitz.open(input_path) as document:
+            page_count = document.page_count
+    except Exception as exc:
+        input_path.unlink(missing_ok=True)
+        raise HTTPException(status_code=400, detail="The uploaded PDF could not be opened.") from exc
+
+    if page_from < 1 or page_from > page_count:
+        input_path.unlink(missing_ok=True)
+        raise HTTPException(status_code=400, detail=f"From page must be between 1 and {page_count}.")
+    if page_to is not None and (page_to < page_from or page_to > page_count):
+        input_path.unlink(missing_ok=True)
+        raise HTTPException(status_code=400, detail=f"To page must be between {page_from} and {page_count}.")
+
+    page_to = page_to or page_count
+    state = create_job(job_id, safe_name, source_language, target_language, page_from, page_to)
+    translate_pdf_task.delay(job_id, str(input_path), source_language, target_language, page_from, page_to)
     return state
 
 
