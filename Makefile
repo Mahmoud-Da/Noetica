@@ -10,7 +10,7 @@ build:
 	docker compose build
 
 logs:
-	docker compose logs -f
+	 
 
 ps:
 	docker compose ps
