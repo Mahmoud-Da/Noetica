@@ -99,14 +99,19 @@ def translate_pdf(
 ) -> None:
     translator = Translator()
     document = fitz.open(input_path)
-    selected_pages = range(page_from - 1, page_to)
-    total_pages = max(len(selected_pages), 1)
+    original_page_count = document.page_count
+    selected_pages = list(range(page_from - 1, page_to))
+    total_pages = len(selected_pages)
 
     try:
-        for selected_index, page_index in enumerate(selected_pages):
-            page = document.load_page(page_index)
-            page_number = page_index + 1
-            progress((selected_index / total_pages) * 100, f"Extracting page {page_number} of {document.page_count}.")
+        # Work on a document containing only the requested pages so the download
+        # does not include untranslated pages from the original PDF.
+        document.select(selected_pages)
+
+        for selected_index in range(total_pages):
+            page = document.load_page(selected_index)
+            page_number = page_from + selected_index
+            progress((selected_index / total_pages) * 100, f"Extracting page {page_number} of {original_page_count}.")
             text_page = page.get_text("dict")
             replacements: list[tuple[fitz.Rect, str, float, tuple[float, float, float]]] = []
 
@@ -129,7 +134,7 @@ def translate_pdf(
 
             progress(
                 ((selected_index + 0.55) / total_pages) * 100,
-                f"Redrawing translated text on page {page_number} of {document.page_count}.",
+                f"Redrawing translated text on page {page_number} of {original_page_count}.",
             )
 
             for rect, translated, font_size, color in replacements:
@@ -139,7 +144,7 @@ def translate_pdf(
             for rect, translated, font_size, color in replacements:
                 _fit_text(page, rect, translated, font_size, color)
 
-            progress(((selected_index + 1) / total_pages) * 100, f"Finished page {page_number} of {document.page_count}.")
+            progress(((selected_index + 1) / total_pages) * 100, f"Finished page {page_number} of {original_page_count}.")
 
         output_path.parent.mkdir(parents=True, exist_ok=True)
         document.save(output_path, garbage=4, deflate=True)
