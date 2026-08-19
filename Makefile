@@ -3,6 +3,9 @@
 up:
 	docker compose up --build
 
+up-d:
+	docker compose up --build --detach
+
 down:
 	docker compose down
 
@@ -10,7 +13,7 @@ build:
 	docker compose build
 
 logs:
-	 
+	docker compose logs --follow --tail=100
 
 ps:
 	docker compose ps

@@ -25,11 +25,11 @@ Run the full app:
 make up
 ```
 
-Then open `http://localhost:5174`.
+Then open `http://localhost:5173`.
 
 The Docker stack runs:
 
-- Frontend: `http://localhost:5174`
+- Frontend: `http://localhost:5173`
 - API: `http://localhost:8010`
 - Redis: internal Compose network only
 - Worker: Celery PDF translation worker
